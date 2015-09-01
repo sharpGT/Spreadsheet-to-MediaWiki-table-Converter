@@ -33,6 +33,7 @@ $caption            = getPostVariable('caption');
 $tableStyle         = getPostVariable('table_style');
 $columnHeader       = getPostCheckboxVariable('column_header');
 $rowHeader          = getPostCheckboxVariable('row_header');
+$numberOfLines      = getPostVariable('number_of_lines');
 
 $booleanColumnHeader  = $columnHeader == 'checked';
 $booleanRowHeader     = $rowHeader == 'checked';
@@ -55,6 +56,30 @@ $wikiTable->setRowHeader($booleanRowHeader);
 /* Get the final output table */
 $wikiTableOutput = $wikiTable->get();
 
+/* converts multi line excel cells to proper wiki format */
+$base_pattern = '([\w\(\)\[\]:\/\.\s_\@]*)'; 			
+$regex_pattern = '/\|"'.$base_pattern.'"/i'; 	
+$addon_pattern = '\s*\n\|-\s*\|'.$base_pattern;	
+$pattern = $regex_pattern;
+
+$base_replace = '|\1'; 							
+$addon_replace;
+$replace = $base_replace;
+
+$tmp_table = $wikiTableOutput;
+$final='';
+for( $i = 2; $i <= $numberOfLines; $i++ )
+{
+	$pattern = substr_replace($pattern, $addon_pattern, -3, 0);
+
+	$addon_replace = '&ltbr>\\'.$i;
+	$replace .= $addon_replace;
+	
+	$tmp_table2 = preg_replace($pattern, $replace, $tmp_table);
+	$tmp_table = $tmp_table2;
+}
+
+$final_table = $tmp_table;
 
 /* Main output */
 $html = <<<HEREDOC
@@ -158,12 +183,14 @@ $html = <<<HEREDOC
           <input type='text' name='header_column_style' value='{$headerColumnStyle}' />
           <h6>Cell style for header row</h6>
           <input type='text' name='header_row_style' value='{$headerRowStyle}' />
+		      <h6>Maximum number of lines in one excel cell</h6>
+          <input type='text' name='number_of_lines' value='{$numberOfLines}' />
         </div>
       </div>
 
     </form>
     <h2>Resulting source code:</h2>
-    <pre>{$wikiTableOutput}</pre>
+    <pre>{$final_table}</pre>
     <div class="footer">
     <a href='https://github.com/MarianoLopezGappa/Spreadsheet-to-MediaWiki-table-Converter'>Source code</a>
     <a href='http://www.linkedin.com/profile/view?id=116781764'>Mariano Lopez-Gappa</a>
@@ -229,3 +256,4 @@ function getPostCheckboxVariable($variable) {
   else
     return 'checked';
 }
+
